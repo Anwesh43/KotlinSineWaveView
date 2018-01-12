@@ -42,7 +42,10 @@ class SineWaveView(ctx:Context):View(ctx) {
         private fun removePoints(stopcb:()->Unit) {
             if(points.size > 0) {
                 points.removeFirst()
+            }
+            else {
                 stopcb()
+                x += a_x  
             }
         }
         fun update(stopcb: () -> Unit) {
@@ -98,6 +101,29 @@ class SineWaveView(ctx:Context):View(ctx) {
         fun stop() {
             if(animated) {
                 animated = false
+            }
+        }
+    }
+    data class Renderer(var view:SineWaveView,var time:Int = 0) {
+        val animator = Animator(view)
+        var sineWave:SineWave?=null
+        fun render(canvas:Canvas,paint:Paint) {
+            if(time == 0) {
+                val w = canvas.width.toFloat()
+                val h = canvas.height.toFloat()
+                sineWave = SineWave(0f,h/2,w/4,h/4)
+            }
+            sineWave?.draw(canvas,paint)
+            time++
+            animator.animate {
+                sineWave?.update {
+                    animator.stop()
+                }
+            }
+        }
+        fun handleTap() {
+            sineWave?.startUpdating {
+                animator.start()
             }
         }
     }
