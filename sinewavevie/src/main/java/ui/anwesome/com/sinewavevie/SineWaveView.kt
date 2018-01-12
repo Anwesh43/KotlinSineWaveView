@@ -10,10 +10,16 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 class SineWaveView(ctx:Context):View(ctx) {
     val paint:Paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    val renderer = Renderer(this)
     override fun onDraw(canvas:Canvas) {
-
+        renderer.render(canvas,paint)
     }
     override fun onTouchEvent(event:MotionEvent):Boolean {
+        when(event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                renderer.handleTap()
+            }
+        }
         return true
     }
     data class SineWave(var x:Float,var y:Float,var a_y:Float,var a_x:Float) {
@@ -45,7 +51,7 @@ class SineWaveView(ctx:Context):View(ctx) {
             }
             else {
                 stopcb()
-                x += a_x  
+                x += a_x
             }
         }
         fun update(stopcb: () -> Unit) {
