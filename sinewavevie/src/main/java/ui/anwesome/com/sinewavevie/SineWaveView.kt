@@ -18,6 +18,7 @@ class SineWaveView(ctx:Context):View(ctx) {
     }
     data class SineWave(var x:Float,var y:Float,var a_y:Float,var a_x:Float) {
         var points:ConcurrentLinkedQueue<PointF> = ConcurrentLinkedQueue()
+        val sineWaveState:SineWaveState = SineWaveState()
         fun draw(canvas:Canvas,paint:Paint) {
             canvas.save()
             canvas.translate(x,y)
@@ -35,20 +36,30 @@ class SineWaveView(ctx:Context):View(ctx) {
             canvas.drawPath(path,paint)
             canvas.restore()
         }
-        fun updateXY(scale_x:Float,scale_y:Float) {
+        private fun updateXY(scale_x:Float,scale_y:Float) {
             points.add(PointF(scale_x*a_x,scale_y*a_y))
         }
-        fun removePoints(stopcb:()->Unit) {
+        private fun removePoints(stopcb:()->Unit) {
             if(points.size > 0) {
                 points.removeFirst()
                 stopcb()
             }
         }
+        fun update(stopcb: () -> Unit) {
+            sineWaveState.update({scale_x,scale_y ->
+                updateXY(scale_x,scale_y)
+            },{stopcb2 ->
+                removePoints(stopcb2)
+            },stopcb)
+        }
+        fun startUpdating(startcb:()->Unit) {
+            sineWaveState.startUpdating(startcb)
+        }
     }
     data class SineWaveState(var deg:Float = 0f,var dir:Float = 0f) {
         fun update(updateXY:(Float,Float)->Unit,removePoints:(()->Unit)->Unit,stopcb:()->Unit) {
             if(deg < 360) {
-                deg += 1f
+                deg += dir
                 updateXY(deg/360f,Math.sin(deg*Math.PI/180).toFloat())
             }
             else {
