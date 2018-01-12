@@ -35,13 +35,33 @@ class SineWaveView(ctx:Context):View(ctx) {
             canvas.drawPath(path,paint)
             canvas.restore()
         }
-        fun updateXY(x:Float,y:Float) {
-            points.add(PointF(x,y))
+        fun updateXY(scale_x:Float,scale_y:Float) {
+            points.add(PointF(scale_x*a_x,scale_y*a_y))
         }
         fun removePoints(stopcb:()->Unit) {
             if(points.size > 0) {
                 points.removeFirst()
                 stopcb()
+            }
+        }
+    }
+    data class SineWaveState(var deg:Float = 0f,var dir:Float = 0f) {
+        fun update(updateXY:(Float,Float)->Unit,removePoints:(()->Unit)->Unit,stopcb:()->Unit) {
+            if(deg < 360) {
+                deg += 1f
+                updateXY(deg/360f,Math.sin(deg*Math.PI/180).toFloat())
+            }
+            else {
+                removePoints {
+                    deg = 0f
+                    stopcb()
+                }
+            }
+        }
+        fun startUpdating(startcb:()->Unit) {
+            if(dir == 0f) {
+                dir = 1f
+                startcb()
             }
         }
     }
@@ -51,6 +71,7 @@ fun ConcurrentLinkedQueue<PointF>.removeFirst() {
     forEach {
         if(i == 0) {
             remove(it)
+            return
         }
         i++
     }
