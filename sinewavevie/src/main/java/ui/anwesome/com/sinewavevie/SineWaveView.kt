@@ -27,7 +27,7 @@ class SineWaveView(ctx:Context):View(ctx) {
     data class SineWave(var x:Float,var y:Float,var a_y:Float,var a_x:Float) {
         var points:ConcurrentLinkedQueue<PointF> = ConcurrentLinkedQueue()
         val sineWaveState:SineWaveState = SineWaveState()
-        fun draw(canvas:Canvas,paint:Paint) {
+        fun draw(canvas:Canvas,paint:Paint,drawcb:(Float)->Unit) {
             canvas.save()
             canvas.translate(x,y)
             val path = Path()
@@ -43,6 +43,8 @@ class SineWaveView(ctx:Context):View(ctx) {
             }
             canvas.drawPath(path,paint)
             canvas.restore()
+            val scale = Math.sin((sineWaveState.deg/2)*Math.PI/180).toFloat()
+            drawcb(scale)
         }
         private fun updateXY(scale_x:Float,scale_y:Float) {
             points.add(PointF(scale_x*a_x,scale_y*a_y))
@@ -123,9 +125,9 @@ class SineWaveView(ctx:Context):View(ctx) {
         var sineWave:SineWave?=null
         var screen:Screen?=null
         fun render(canvas:Canvas,paint:Paint) {
+            val w = canvas.width.toFloat()
+            val h = canvas.height.toFloat()
             if(time == 0) {
-                val w = canvas.width.toFloat()
-                val h = canvas.height.toFloat()
                 sineWave = SineWave(0f,h/2,w/4,h/4)
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = Math.min(w,h)/45
@@ -134,7 +136,9 @@ class SineWaveView(ctx:Context):View(ctx) {
                 screen = Screen(w)
             }
             screen?.draw(canvas,paint,{
-                sineWave?.draw(canvas,paint)
+                sineWave?.draw(canvas,paint,{it ->
+                    canvas.drawDoubleSideProgressLine(-(screen?.x?:0f) +w/2,h-h/10,9*w/10,it,paint)
+                })
             })
             time++
             animator.animate {
@@ -192,4 +196,15 @@ fun ConcurrentLinkedQueue<PointF>.getLast():PointF? {
         i++
     }
     return null
+}
+fun Canvas.drawDoubleSideProgressLine(x:Float,y:Float,size:Float,scale:Float,paint:Paint) {
+    save()
+    translate(x,y)
+    drawLine(-(size/2)*scale,0f,(size/2)*scale,0f,paint)
+    for(i in 0..1) {
+        var x_arc = (size/2-size/10)
+        var dir = 1-2*i
+        drawArc(RectF(dir*x_arc-size/10,-size/10,dir*x_arc+size/10,size/10),0f,360f*scale,false,paint)
+    }
+    restore()
 }
