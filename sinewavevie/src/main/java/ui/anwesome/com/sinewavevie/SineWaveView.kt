@@ -12,9 +12,13 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class SineWaveView(ctx:Context):View(ctx) {
     val paint:Paint = Paint(Paint.ANTI_ALIAS_FLAG)
     val renderer = Renderer(this)
+    var onSineWaveListener:OnSineWaveListener?=null
     override fun onDraw(canvas:Canvas) {
         canvas.drawColor(Color.parseColor("#212121"))
         renderer.render(canvas,paint)
+    }
+    fun addOnSineWaveListener(listener: (Float,Float)->Unit) {
+        onSineWaveListener = OnSineWaveListener(listener)
     }
     override fun onTouchEvent(event:MotionEvent):Boolean {
         when(event.action) {
@@ -49,16 +53,16 @@ class SineWaveView(ctx:Context):View(ctx) {
         private fun updateXY(scale_x:Float,scale_y:Float) {
             points.add(PointF(scale_x*a_x,scale_y*a_y))
         }
-        private fun removePoints(stopcb:()->Unit) {
+        private fun removePoints(stopcb:(Float,Float)->Unit) {
             if(points.size > 0) {
                 points.removeFirst()
             }
             else {
-                stopcb()
+                stopcb(x,x+a_x)
                 x += a_x
             }
         }
-        fun update(updatecb:(Float)->Unit,stopcb: () -> Unit) {
+        fun update(updatecb:(Float)->Unit,stopcb: (Float,Float) -> Unit) {
             sineWaveState.update({scale_x,scale_y ->
                 updateXY(scale_x,scale_y)
                 var x_offset = 0f
@@ -75,16 +79,16 @@ class SineWaveView(ctx:Context):View(ctx) {
         }
     }
     data class SineWaveState(var deg:Float = 0f,var dir:Float = 0f) {
-        fun update(updateXY:(Float,Float)->Unit,removePoints:(()->Unit)->Unit,stopcb:()->Unit) {
+        fun update(updateXY:(Float,Float)->Unit,removePoints:((Float,Float)->Unit)->Unit,stopcb:(Float,Float)->Unit) {
             if(deg < 360) {
                 deg += dir*10f
                 updateXY(deg/360f,Math.sin(deg*Math.PI/180).toFloat())
             }
             else {
-                removePoints {
+                removePoints {ox,dx ->
                     deg = 0f
                     dir = 0f
-                    stopcb()
+                    stopcb(ox,dx)
                 }
             }
         }
@@ -144,8 +148,9 @@ class SineWaveView(ctx:Context):View(ctx) {
             animator.animate {
                 sineWave?.update({px ->
                     screen?.update(px)
-                },{
+                },{ox,dx ->
                     animator.stop()
+                    view.onSineWaveListener?.listener?.invoke(ox,dx)
                 })
             }
         }
@@ -175,6 +180,7 @@ class SineWaveView(ctx:Context):View(ctx) {
             }
         }
     }
+    data class OnSineWaveListener(var listener:(Float,Float)->Unit)
 }
 fun ConcurrentLinkedQueue<PointF>.removeFirst() {
     var i = 0
