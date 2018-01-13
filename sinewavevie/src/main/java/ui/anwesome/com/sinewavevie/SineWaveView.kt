@@ -28,7 +28,7 @@ class SineWaveView(ctx:Context):View(ctx) {
         }
         return true
     }
-    data class SineWave(var x:Float,var y:Float,var a_y:Float,var a_x:Float) {
+    data class SineWave(var x:Float,var y:Float,var a_y:Float,var a_x:Float,var scale:Float = 0f,var orig:Int = 0) {
         var points:ConcurrentLinkedQueue<PointF> = ConcurrentLinkedQueue()
         val sineWaveState:SineWaveState = SineWaveState()
         fun draw(canvas:Canvas,paint:Paint,drawcb:(Float)->Unit) {
@@ -47,15 +47,17 @@ class SineWaveView(ctx:Context):View(ctx) {
             }
             canvas.drawPath(path,paint)
             canvas.restore()
-            val scale = Math.sin((sineWaveState.deg/2)*Math.PI/180).toFloat()
             drawcb(scale)
         }
         private fun updateXY(scale_x:Float,scale_y:Float) {
             points.add(PointF(scale_x*a_x,scale_y*a_y))
+            scale = Math.sin((sineWaveState.deg/4)*Math.PI/180).toFloat()
+            orig = points.size
         }
         private fun removePoints(stopcb:(Float,Float)->Unit) {
             if(points.size > 0) {
                 points.removeFirst()
+                scale = points.size.toFloat()/orig
             }
             else {
                 stopcb(x,x+a_x)
@@ -206,7 +208,7 @@ fun ConcurrentLinkedQueue<PointF>.getLast():PointF? {
 fun Canvas.drawDoubleSideProgressLine(x:Float,y:Float,size:Float,scale:Float,paint:Paint) {
     save()
     translate(x,y)
-    drawLine(-(size/2)*scale,0f,(size/2)*scale,0f,paint)
+    drawLine(-(size/2-size/5)*scale,0f,(size/2-size/5)*scale,0f,paint)
     for(i in 0..1) {
         var x_arc = (size/2-size/10)
         var dir = 1-2*i
